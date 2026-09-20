@@ -1,0 +1,195 @@
+<%- include("partials/header") %>
+
+<div class="row g-4">
+  <div class="col-lg-4">
+    <!-- Parameter Selector Form -->
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-white py-3 border-bottom">
+        <h5 class="mb-0 fw-bold d-flex align-items-center gap-2">
+          <span>🌱</span> AI Resource Estimation
+        </h5>
+        <small class="text-muted">Dynamic calculations based on agronomic models</small>
+      </div>
+      <div class="card-body p-4">
+        <form action="/resource-planner/" method="GET" id="planner-form">
+          <div class="mb-3">
+            <label for="select-crop" class="form-label fw-semibold small text-muted">Crop</label>
+            <select name="crop" id="select-crop" class="form-select" onchange="this.form.submit()">
+              <option value="wheat" <%= selectedCrop === 'wheat' ? 'selected' : '' %>>🌾 Wheat (HD-2967 / Sharbati)</option>
+              <option value="rice" <%= selectedCrop === 'rice' ? 'selected' : '' %>>🍚 Rice (Basmati / Pusa 1121)</option>
+              <option value="mustard" <%= selectedCrop === 'mustard' ? 'selected' : '' %>>🌼 Yellow Mustard (Pusa Bold)</option>
+              <option value="cotton" <%= selectedCrop === 'cotton' ? 'selected' : '' %>>☁️ Cotton (Bt Hybrid)</option>
+              <option value="onion" <%= selectedCrop === 'onion' ? 'selected' : '' %>>🧅 Onion (Nashik Red)</option>
+              <option value="potato" <%= selectedCrop === 'potato' ? 'selected' : '' %>>🥔 Potato (Kufri Pukhraj)</option>
+              <option value="maize" <%= selectedCrop === 'maize' ? 'selected' : '' %>>🌽 Maize (Hybrid)</option>
+              <option value="sugarcane" <%= selectedCrop === 'sugarcane' ? 'selected' : '' %>>🎋 Sugarcane (Co-0238)</option>
+              <option value="tomato" <%= selectedCrop === 'tomato' ? 'selected' : '' %>>🍅 Tomato (Abhinav / F1)</option>
+              <option value="banana" <%= selectedCrop === 'banana' ? 'selected' : '' %>>🍌 Banana (Grand Naine)</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label for="select-season" class="form-label fw-semibold small text-muted">Cropping Season</label>
+            <select name="season" id="select-season" class="form-select" onchange="this.form.submit()">
+              <option value="rabi" <%= selectedSeason === 'rabi' ? 'selected' : '' %>>Winter / Rabi (Oct - Mar)</option>
+              <option value="kharif" <%= selectedSeason === 'kharif' ? 'selected' : '' %>>Monsoon / Kharif (Jun - Oct)</option>
+              <option value="zaid" <%= selectedSeason === 'zaid' ? 'selected' : '' %>>Summer / Zaid (Mar - Jun)</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label for="select-soil" class="form-label fw-semibold small text-muted">Soil Classification</label>
+            <select name="soil" id="select-soil" class="form-select" onchange="this.form.submit()">
+              <option value="loam" <%= selectedSoil === 'loam' ? 'selected' : '' %>>Loam (Balanced & Aerated)</option>
+              <option value="sandy" <%= selectedSoil === 'sandy' ? 'selected' : '' %>>Sandy Loam (Rapid Drainage)</option>
+              <option value="clay" <%= selectedSoil === 'clay' ? 'selected' : '' %>>Clay Heavy (High Moisture Retention)</option>
+              <option value="black" <%= selectedSoil === 'black' ? 'selected' : '' %>>Black Cotton Soil (Regur)</option>
+              <option value="alluvial" <%= selectedSoil === 'alluvial' ? 'selected' : '' %>>Alluvial Fertile Plains</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label for="input-acres" class="form-label fw-semibold small text-muted">Cultivation Area (Acres)</label>
+            <div class="input-group">
+              <input type="number" step="0.5" min="0.5" max="100" name="acres" id="input-acres" class="form-control" value="<%= acres %>">
+              <span class="input-group-text">Acres</span>
+              <button class="btn btn-outline-success" type="submit">Recalculate</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Quick Insights Card -->
+    <div class="card shadow-sm border-0 bg-success-subtle border-success-subtle">
+      <div class="card-body p-3">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="fs-4">💡</span>
+          <h6 class="mb-0 fw-bold text-success-emphasis">Input Cost Optimization</h6>
+        </div>
+        <p class="small text-success-emphasis mb-0">
+          Following precise scientific nutrient splits and soil-moisture intervals saves approximately 
+          <strong>₹<%= estimate.cost_saving_estimate ? estimate.cost_saving_estimate.toLocaleString('en-IN') : '3,700' %></strong> 
+          per acre compared to uncalibrated broadcasting.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <!-- Resource Metrics Grid -->
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+        <h5 class="mb-0 fw-bold">
+          Estimated Agricultural Inputs (<%= selectedCrop.toUpperCase() %>, <%= acres %> Acre)
+        </h5>
+        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+          Duration: <%= estimate.growth_duration_days || 120 %> Days
+        </span>
+      </div>
+      <div class="card-body p-4">
+        <div class="row g-3 text-center mb-4">
+          <div class="col-md-4">
+            <div class="p-3 bg-light rounded-3 border">
+              <div class="text-muted small fw-semibold">Seed Requirement</div>
+              <div class="stat-number text-success my-1"><%= estimate.seed_kg %> <span class="fs-5">kg</span></div>
+              <div class="small text-muted">Certified Seed Rate</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="p-3 bg-light rounded-3 border">
+              <div class="text-muted small fw-semibold">Water Requirement</div>
+              <div class="stat-number text-primary my-1"><%= estimate.water_liters_per_day ? estimate.water_liters_per_day.toLocaleString('en-IN') : 0 %> <span class="fs-5">L/day</span></div>
+              <div class="small text-muted">Irrigation Cycle: Every <%= estimate.irrigation_interval_days || 10 %> days</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="p-3 bg-light rounded-3 border">
+              <div class="text-muted small fw-semibold">Primary Fertilizer</div>
+              <div class="stat-number text-warning-emphasis my-1">
+                <%= estimate.fertilizer_kg?.urea || 0 %> <span class="fs-5">kg Urea</span>
+              </div>
+              <div class="small text-muted"><%= estimate.fertilizer_str %></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Inventory Cross Check -->
+        <h6 class="fw-bold mb-3 d-flex align-items-center gap-2">
+          <span>📦</span> Inventory Feasibility & Shortage Inspection
+        </h6>
+        <% if (estimate.inventory_checks && estimate.inventory_checks.length > 0) { %>
+          <div class="table-responsive mb-4">
+            <table class="table table-hover align-middle border mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Input Name</th>
+                  <th>Required Amount</th>
+                  <th>In Farmer Inventory</th>
+                  <th>Status</th>
+                  <th>Procurement Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% for (const check of estimate.inventory_checks) { %>
+                  <tr>
+                    <td class="fw-semibold"><%= check.itemName %></td>
+                    <td><%= check.needed %> <%= check.unit %></td>
+                    <td><%= check.available %> <%= check.unit %></td>
+                    <td>
+                      <% if (check.status === 'sufficient') { %>
+                        <span class="badge bg-success-subtle text-success">Sufficient Stock</span>
+                      <% } else if (check.status === 'shortage') { %>
+                        <span class="badge bg-warning-subtle text-warning-emphasis">Shortage: <%= check.shortageAmount %> <%= check.unit %></span>
+                      <% } else { %>
+                        <span class="badge bg-danger-subtle text-danger">Missing in Stock</span>
+                      <% } %>
+                    </td>
+                    <td>
+                      <% if (check.status !== 'sufficient') { %>
+                        <a href="/marketplace/" class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size: 0.78rem;">
+                          Order / Contact Supplier
+                        </a>
+                      <% } else { %>
+                        <span class="text-muted small">Ready in shed</span>
+                      <% } %>
+                    </td>
+                  </tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+
+        <!-- Critical Stages & Soil Advisory -->
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="p-3 bg-light rounded-3 border h-100">
+              <h6 class="fw-bold d-flex align-items-center gap-2 mb-2">
+                <span>📅</span> Critical Irrigation & Growth Stages
+              </h6>
+              <% if (estimate.critical_stages) { %>
+                <ul class="mb-0 ps-3 small text-muted">
+                  <% for (const st of estimate.critical_stages) { %>
+                    <li class="mb-1"><%= st %></li>
+                  <% } %>
+                </ul>
+              <% } %>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="p-3 bg-light rounded-3 border h-100">
+              <h6 class="fw-bold d-flex align-items-center gap-2 mb-2">
+                <span>🌍</span> Soil-Specific Agronomic Advisory
+              </h6>
+              <p class="small text-muted mb-2"><%= estimate.soil_advisory %></p>
+              <p class="small text-success fw-semibold mb-0">💡 <%= estimate.advisory %></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include("partials/footer") %>

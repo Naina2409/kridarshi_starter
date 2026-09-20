@@ -1,0 +1,197 @@
+<%- include('partials/header') %>
+
+<div class="row g-4" id="vakh-section">
+  <!-- Top Banner -->
+  <div class="col-12">
+    <div class="card shadow-sm border-0 bg-white">
+      <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <div>
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="fs-4">📋</span>
+            <h5 class="mb-0 fw-bold"><%= T.vakh_title || 'Vakh Voice & Rural Survey Forms' %></h5>
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">Official Vakh Integration</span>
+          </div>
+          <p class="text-muted small mb-0"><%= T.vakh_subtitle || 'Direct access to official Vakh data collection, village surveys, and farmer feedback modules.' %></p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <a href="https://vakh.com" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 shadow-sm px-3 py-1">
+            <span>🌐</span> <span>Visit Vakh.com ↗</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3 Vakh Forms Grid -->
+  <div class="col-12">
+    <div class="row g-3">
+      <!-- Form 1: u54v -->
+      <div class="col-md-4">
+        <div class="card h-100 shadow-sm border <%= selectedForm === 'u54v' ? 'border-success border-2' : '' %>" id="card-u54v">
+          <div class="card-body p-4 d-flex flex-column justify-content-between">
+            <div>
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 fw-bold">📦 ID: u54v</span>
+                <span class="badge bg-light text-secondary border">Form 1</span>
+              </div>
+              <h6 class="fw-bold mb-1"><%= T.vakh_form_1_title || 'Farm Resource Inventory (u54v)' %></h6>
+              <p class="text-muted small mb-3"><%= T.vakh_form_1_desc || 'Manage and record seeds, fertilizers, farm equipment, and harvest stock.' %></p>
+            </div>
+            <div>
+              <div class="p-2 bg-light rounded border small mb-3 text-truncate font-monospace text-muted" style="font-size: 0.75rem;">
+                https://vakh.com/form/u54v
+              </div>
+              <div class="d-flex gap-2">
+                <a href="/vakh/?form=u54v" class="btn btn-sm <%= selectedForm === 'u54v' ? 'btn-success text-white' : 'btn-outline-success' %> flex-grow-1 fw-semibold">
+                  <span>👁️</span> <%= selectedForm === 'u54v' ? 'Viewing' : 'Select' %>
+                </a>
+                <a href="https://vakh.com/form/u54v" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary px-2" title="<%= T.vakh_open_external || 'Open in Vakh' %>">
+                  <span>↗</span>
+                </a>
+                <button type="button" class="btn btn-sm btn-outline-secondary px-2 copy-btn" data-url="https://vakh.com/form/u54v" title="<%= T.vakh_copy_link || 'Copy Link' %>">
+                  <span>📋</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form 2: wmz6 -->
+      <div class="col-md-4">
+        <div class="card h-100 shadow-sm border <%= selectedForm === 'wmz6' ? 'border-primary border-2' : '' %>" id="card-wmz6">
+          <div class="card-body p-4 d-flex flex-column justify-content-between">
+            <div>
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 fw-bold">⚠️ ID: wmz6</span>
+                <span class="badge bg-light text-secondary border">Form 2</span>
+              </div>
+              <h6 class="fw-bold mb-1"><%= T.vakh_form_2_title || 'Farm Alerts & Advisory (wmz6)' %></h6>
+              <p class="text-muted small mb-3"><%= T.vakh_form_2_desc || 'Crop health warnings, pest advisories, weather risks, and priority alerts.' %></p>
+            </div>
+            <div>
+              <div class="p-2 bg-light rounded border small mb-3 text-truncate font-monospace text-muted" style="font-size: 0.75rem;">
+                https://vakh.com/form/wmz6
+              </div>
+              <div class="d-flex gap-2">
+                <a href="/vakh/?form=wmz6" class="btn btn-sm <%= selectedForm === 'wmz6' ? 'btn-primary text-white' : 'btn-outline-primary' %> flex-grow-1 fw-semibold">
+                  <span>👁️</span> <%= selectedForm === 'wmz6' ? 'Viewing' : 'Select' %>
+                </a>
+                <a href="https://vakh.com/form/wmz6" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary px-2" title="<%= T.vakh_open_external || 'Open in Vakh' %>">
+                  <span>↗</span>
+                </a>
+                <button type="button" class="btn btn-sm btn-outline-secondary px-2 copy-btn" data-url="https://vakh.com/form/wmz6" title="<%= T.vakh_copy_link || 'Copy Link' %>">
+                  <span>📋</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form 3: gwnc -->
+      <div class="col-md-4">
+        <div class="card h-100 shadow-sm border <%= selectedForm === 'gwnc' ? 'border-info border-2' : '' %>" id="card-gwnc">
+          <div class="card-body p-4 d-flex flex-column justify-content-between">
+            <div>
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <span class="badge bg-info-subtle text-dark border border-info-subtle px-2 py-1 fw-bold">📈 ID: gwnc</span>
+                <span class="badge bg-light text-secondary border">Form 3</span>
+              </div>
+              <h6 class="fw-bold mb-1"><%= T.vakh_form_3_title || 'Market & Weather Updates (gwnc)' %></h6>
+              <p class="text-muted small mb-3"><%= T.vakh_form_3_desc || 'Live Mandi crop commodity rates, procurement bids, and localized forecasts.' %></p>
+            </div>
+            <div>
+              <div class="p-2 bg-light rounded border small mb-3 text-truncate font-monospace text-muted" style="font-size: 0.75rem;">
+                https://vakh.com/form/gwnc
+              </div>
+              <div class="d-flex gap-2">
+                <a href="/vakh/?form=gwnc" class="btn btn-sm <%= selectedForm === 'gwnc' ? 'btn-info text-dark' : 'btn-outline-info' %> flex-grow-1 fw-semibold">
+                  <span>👁️</span> <%= selectedForm === 'gwnc' ? 'Viewing' : 'Select' %>
+                </a>
+                <a href="https://vakh.com/form/gwnc" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary px-2" title="<%= T.vakh_open_external || 'Open in Vakh' %>">
+                  <span>↗</span>
+                </a>
+                <button type="button" class="btn btn-sm btn-outline-secondary px-2 copy-btn" data-url="https://vakh.com/form/gwnc" title="<%= T.vakh_copy_link || 'Copy Link' %>">
+                  <span>📋</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Embedded Live View -->
+  <div class="col-12">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-success text-white px-2 py-1">Live</span>
+          <h6 class="mb-0 fw-bold d-flex align-items-center flex-wrap gap-2">
+            <span>
+              <% if (selectedForm === 'u54v') { %>
+                📦 <%= T.vakh_form_1_title || 'Farm Resource Inventory (u54v)' %>
+              <% } else if (selectedForm === 'wmz6') { %>
+                ⚠️ <%= T.vakh_form_2_title || 'Farm Alerts & Advisory (wmz6)' %>
+              <% } else { %>
+                📈 <%= T.vakh_form_3_title || 'Market & Weather Updates (gwnc)' %>
+              <% } %>
+            </span>
+            <span class="text-primary fw-normal small">https://vakh.com/form/<%= selectedForm %></span>
+          </h6>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('vakh-iframe').src = document.getElementById('vakh-iframe').src;" title="Reload Form">
+            <span>🔄</span> <span class="d-none d-sm-inline">Reload</span>
+          </button>
+          <a href="https://vakh.com/form/<%= selectedForm %>" target="_blank" rel="noopener noreferrer" class="btn btn-success btn-sm fw-semibold shadow-sm d-flex align-items-center gap-1">
+            <span>↗</span> <span><%= T.vakh_open_external || 'Open in Vakh' %> (Full Window)</span>
+          </a>
+        </div>
+      </div>
+      <div class="card-body p-0 position-relative" style="min-height: 640px; background: #f8fafc;">
+        <!-- Embedded Iframe -->
+        <iframe 
+          id="vakh-iframe"
+          src="https://vakh.com/form/<%= selectedForm %>" 
+          class="w-100 border-0" 
+          style="height: 680px; display: block;"
+          allow="microphone; camera; clipboard-write; autoplay; geolocation"
+          loading="lazy">
+        </iframe>
+      </div>
+      <div class="card-footer bg-light py-2 px-3 border-top d-flex flex-wrap align-items-center justify-content-between gap-2 small text-muted">
+        <div>
+          <span>💡</span> <%= T.vakh_note_load || 'Forms load directly from Vakh. You can interact directly in the frame or launch in a full new tab.' %>
+        </div>
+        <div id="copy-toast" class="text-success fw-bold d-none">
+          ✓ <%= T.vakh_link_copied || 'Link copied!' %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const url = btn.getAttribute('data-url');
+      if (url) {
+        try {
+          await navigator.clipboard.writeText(url);
+          const toast = document.getElementById('copy-toast');
+          if (toast) {
+            toast.classList.remove('d-none');
+            setTimeout(() => toast.classList.add('d-none'), 2500);
+          }
+        } catch (e) {
+          prompt('Copy link:', url);
+        }
+      }
+    });
+  });
+</script>
+
+<%- include('partials/footer') %>

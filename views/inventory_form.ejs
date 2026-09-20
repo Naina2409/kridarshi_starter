@@ -1,0 +1,35 @@
+<%- include('partials/header') %>
+<h4 id="form-heading"><%= T.add_inventory %></h4>
+<form method="post" action="/inventory/add/" class="bg-white p-4 rounded shadow-sm" style="max-width:480px" id="add-inventory-form">
+  <div class="mb-3">
+    <label class="form-label" for="item-name"><%= T.name %></label>
+    <input class="form-control" id="item-name" name="name" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label" for="item-category"><%= T.category %></label>
+    <select class="form-select" id="item-category" name="category">
+      <option value="seed"><%= T.cat_seed %></option>
+      <option value="fertilizer"><%= T.cat_fertilizer %></option>
+      <option value="tool"><%= T.cat_tool %></option>
+      <option value="produce"><%= T.cat_produce %></option>
+    </select>
+  </div>
+  <div class="mb-3">
+    <label class="form-label" for="item-quantity"><%= T.quantity %></label>
+    <input type="number" step="0.1" class="form-control" id="item-quantity" name="quantity" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label" for="item-unit"><%= T.unit %></label>
+    <input class="form-control" id="item-unit" name="unit" value="kg">
+  </div>
+  <div class="mb-3">
+    <label class="form-label" for="item-threshold"><%= T.low_stock_threshold %></label>
+    <input type="number" step="0.1" class="form-control" id="item-threshold" name="low_stock_threshold" value="5">
+  </div>
+  <div class="mb-3">
+    <label class="form-label" for="item-expiry"><%= T.expiry_optional %></label>
+    <input type="date" class="form-control" id="item-expiry" name="expiry_date">
+  </div>
+  <button type="submit" class="btn btn-success" id="submit-inventory-btn"><%= T.save %></button>
+</form>
+<%- include('partials/footer') %>

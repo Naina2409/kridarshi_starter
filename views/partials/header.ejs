@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="<%= CURRENT_LANG %>">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= T.brand %> - AI Agricultural Operating System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --agri-green-dark: #14532d;
+      --agri-green-main: #15803d;
+      --agri-green-light: #f0fdf4;
+      --agri-amber: #b45309;
+      --agri-amber-light: #fffbeb;
+      --agri-red: #b91c1c;
+      --agri-red-light: #fef2f2;
+      --agri-blue: #0369a1;
+      --agri-blue-light: #f0f9ff;
+    }
+    body {
+      background-color: #f8fafc;
+      color: #1e293b;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      line-height: 1.55;
+    }
+    .kri-navbar {
+      background: linear-gradient(135deg, #14532d 0%, #166534 60%, #15803d 100%);
+      box-shadow: 0 2px 8px rgba(20, 83, 45, 0.15);
+    }
+    .kri-brand-title {
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      font-size: 1.25rem;
+    }
+    .kri-subnav {
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      overflow-x: auto;
+      white-space: nowrap;
+      padding: 0.5rem 0;
+      scrollbar-width: thin;
+    }
+    .kri-subnav-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 0.9rem;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #475569;
+      text-decoration: none;
+      transition: all 0.15s ease-in-out;
+    }
+    .kri-subnav-link:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+    .kri-subnav-link.active {
+      background: #15803d;
+      color: #ffffff;
+      box-shadow: 0 1px 3px rgba(21, 128, 61, 0.25);
+    }
+    .card {
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .card-header-clean {
+      background: #ffffff;
+      border-bottom: 1px solid #f1f5f9;
+      padding: 1rem 1.25rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .badge-seed { background: #e0f2fe; color: #0369a1; font-weight: 600; }
+    .badge-fertilizer { background: #fef3c7; color: #92400e; font-weight: 600; }
+    .badge-tool { background: #f3e8ff; color: #6b21a8; font-weight: 600; }
+    .badge-produce { background: #dcfce7; color: #166534; font-weight: 600; }
+    .stat-number {
+      font-size: 1.75rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .pulse-danger {
+      animation: pulse-red 2s infinite;
+    }
+    @keyframes pulse-red {
+      0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+      70% { box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+    }
+  </style>
+  <script id="voice-missing-msg" type="application/json"><%- JSON.stringify(T.voice_missing) %></script>
+  <script id="voice-error-msg" type="application/json"><%- JSON.stringify(T.voice_error) %></script>
+  <script id="transcribe-error-msg" type="application/json"><%- JSON.stringify(T.transcribe_error) %></script>
+  <script id="mic-error-msg" type="application/json"><%- JSON.stringify(T.mic_error) %></script>
+  <script id="recording-msg" type="application/json"><%- JSON.stringify(T.recording) %></script>
+  <script id="record-msg" type="application/json"><%- JSON.stringify(T.record) %></script>
+  <script id="stop-msg" type="application/json"><%- JSON.stringify(T.stop) %></script>
+  <script id="converting-msg" type="application/json"><%- JSON.stringify(T.converting) %></script>
+  <script>
+    window.KRIDARSHI = {
+      voiceEnabled: <%= VOICE_ENABLED ? 'true' : 'false' %>,
+      speakUrl: "/voice/speak/",
+      transcribeUrl: "/voice/transcribe/",
+      lang: "<%= CURRENT_LANG %>",
+      missing: JSON.parse(document.getElementById("voice-missing-msg").textContent),
+      error: JSON.parse(document.getElementById("voice-error-msg").textContent),
+      transcribeError: JSON.parse(document.getElementById("transcribe-error-msg").textContent),
+      micError: JSON.parse(document.getElementById("mic-error-msg").textContent),
+      recording: JSON.parse(document.getElementById("recording-msg").textContent),
+      record: JSON.parse(document.getElementById("record-msg").textContent),
+      stop: JSON.parse(document.getElementById("stop-msg").textContent),
+      converting: JSON.parse(document.getElementById("converting-msg").textContent),
+    };
+    window.kridarshiSpeak = async function(text) {
+      if (!text) return;
+      if (window.KRIDARSHI.voiceEnabled) {
+        try {
+          const res = await fetch(window.KRIDARSHI.speakUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ text }),
+          });
+          if (res.ok) {
+            const url = URL.createObjectURL(await res.blob());
+            const audio = new Audio(url);
+            audio.onended = () => URL.revokeObjectURL(url);
+            await audio.play();
+            return;
+          }
+        } catch (err) {
+          console.warn("ElevenLabs TTS unavailable, falling back to browser voice", err);
+        }
+      }
+      if ('speechSynthesis' in window) {
+        try {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          const langMap = { en: "en-IN", hi: "hi-IN", pa: "pa-IN" };
+          utterance.lang = langMap[window.KRIDARSHI.lang] || "en-IN";
+          utterance.rate = 0.95;
+          window.speechSynthesis.speak(utterance);
+          return;
+        } catch (e) {
+          console.warn("Speech synthesis error", e);
+        }
+      }
+      alert(window.KRIDARSHI.missing);
+    };
+  </script>
+</head>
+<body>
+  <header class="sticky-top">
+    <nav class="navbar navbar-dark kri-navbar py-2" id="main-nav">
+      <div class="container-fluid container-xl">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="/" id="brand-link">
+          <span style="font-size: 1.4rem;">🌾</span>
+          <div>
+            <div class="kri-brand-title"><%= T.brand %></div>
+            <div style="font-size: 0.72rem; opacity: 0.85; line-height: 1;"><%= T.tagline_sub || 'Agri-OS & Rural Intelligence' %></div>
+          </div>
+        </a>
+        <div class="d-flex align-items-center gap-2">
+          <% if (locals.currentUser) { %>
+            <div class="dropdown">
+              <button class="btn btn-outline-light btn-sm dropdown-toggle d-flex align-items-center gap-1 py-1 px-2 border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background: rgba(255,255,255,0.12);">
+                <span class="fs-6"><%= locals.currentUser.role === 'trader' ? '🏪' : '👨‍🌾' %></span>
+                <span class="fw-semibold text-truncate" style="max-width: 130px;"><%= locals.currentUser.name %></span>
+                <span class="badge <%= locals.currentUser.role === 'trader' ? 'bg-info text-dark' : 'bg-success-subtle text-success' %> ms-1" style="font-size: 0.65rem;">
+                  <%= locals.currentUser.role === 'trader' ? (T.role_trader_badge || 'Trader') : (T.role_farmer_badge || 'Farmer') %>
+                </span>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 py-2" style="font-size: 0.85rem;">
+                <li class="px-3 py-1 text-muted border-bottom mb-1">
+                  <div class="fw-bold text-dark"><%= locals.currentUser.name %></div>
+                  <div class="small">📞 <%= locals.currentUser.phone %></div>
+                  <div class="small">📍 <%= locals.currentUser.village %></div>
+                </li>
+                <li>
+                  <a class="dropdown-item d-flex align-items-center gap-2 py-1 text-danger" href="/auth/logout/">
+                    <span>🚪</span> <span><%= T.nav_logout || 'Sign Out' %></span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+          <% } else { %>
+            <a href="/auth/login/" class="btn btn-outline-light btn-sm fw-semibold d-flex align-items-center gap-1 px-2 py-1" style="font-size: 0.82rem;">
+              <span>🔐</span> <span><%= T.nav_login || 'Sign In' %></span>
+            </a>
+          <% } %>
+
+          <div class="dropdown">
+            <button class="btn btn-outline-light btn-sm dropdown-toggle d-flex align-items-center gap-1 py-1 px-2 border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background: rgba(255,255,255,0.12);" id="nav-vakh-dropdown">
+              <span>📋</span>
+              <span class="fw-semibold"><%= T.nav_vakh || 'Vakh Forms' %></span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 py-2" style="font-size: 0.85rem; min-width: 280px;">
+              <li class="px-3 py-1 text-muted border-bottom mb-1">
+                <div class="fw-bold text-dark"><%= T.nav_vakh || 'Vakh Forms' %></div>
+                <div class="small text-muted text-truncate" style="max-width: 250px;"><%= T.vakh_subtitle || 'Rural Intelligence & Voice Forms' %></div>
+              </li>
+              <li>
+                <a class="dropdown-item d-flex align-items-center justify-content-between py-2" href="https://vakh.com/form/u54v" target="_blank" rel="noopener noreferrer">
+                  <span class="d-flex align-items-center gap-1">
+                    <span>📦</span>
+                    <span><%= T.vakh_form_1_short || 'Farm Resource Inventory' %></span>
+                    <span class="badge bg-light text-muted border ms-1" style="font-size: 0.68rem;">u54v</span>
+                  </span>
+                  <span class="badge bg-light text-secondary border">↗</span>
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item d-flex align-items-center justify-content-between py-2" href="https://vakh.com/form/wmz6" target="_blank" rel="noopener noreferrer">
+                  <span class="d-flex align-items-center gap-1">
+                    <span>⚠️</span>
+                    <span><%= T.vakh_form_2_short || 'Farm Alerts & Advisory' %></span>
+                    <span class="badge bg-light text-muted border ms-1" style="font-size: 0.68rem;">wmz6</span>
+                  </span>
+                  <span class="badge bg-light text-secondary border">↗</span>
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item d-flex align-items-center justify-content-between py-2" href="https://vakh.com/form/gwnc" target="_blank" rel="noopener noreferrer">
+                  <span class="d-flex align-items-center gap-1">
+                    <span>📈</span>
+                    <span><%= T.vakh_form_3_short || 'Market & Weather Updates' %></span>
+                    <span class="badge bg-light text-muted border ms-1" style="font-size: 0.68rem;">gwnc</span>
+                  </span>
+                  <span class="badge bg-light text-secondary border">↗</span>
+                </a>
+              </li>
+              <li class="border-top mt-1 pt-1">
+                <a class="dropdown-item d-flex align-items-center gap-2 py-2 fw-semibold text-success" href="/vakh/">
+                  <span>🌐</span> <span><%= T.vakh_all_forms || 'All Vakh Forms' %> (Interactive Portal) →</span>
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <a href="/query/" class="btn btn-warning btn-sm fw-semibold d-flex align-items-center gap-1 shadow-sm text-dark px-2 px-sm-3 py-1" id="nav-ask-btn">
+            <span>🎙️</span>
+            <span class="d-none d-sm-inline"><%= T.nav_ask %></span>
+          </a>
+          <form action="/language/" method="post" class="mb-0" id="lang-form">
+            <input type="hidden" name="next" value="<%= currentPath %>">
+            <select name="language" id="lang-select" class="form-select form-select-sm bg-white text-dark fw-semibold" onchange="this.form.submit()" aria-label="Language">
+              <% for (const [code, label] of SUPPORTED_LANGUAGES) { %>
+                <option value="<%= code %>" <%= code === CURRENT_LANG ? 'selected' : '' %>><%= label %></option>
+              <% } %>
+            </select>
+          </form>
+        </div>
+      </div>
+    </nav>
+    <div class="kri-subnav">
+      <div class="container-fluid container-xl d-flex align-items-center gap-2">
+        <a href="/" class="kri-subnav-link <%= currentPath === '/' ? 'active' : '' %>" id="subnav-dash">
+          <span>🏠</span> <span><%= T.nav_dashboard || 'Dashboard' %></span>
+        </a>
+        <a href="/inventory/" class="kri-subnav-link <%= currentPath.startsWith('/inventory') ? 'active' : '' %>" id="subnav-inv">
+          <span>📦</span> <span><%= T.nav_inventory %></span>
+        </a>
+        <a href="/scanner/" class="kri-subnav-link <%= currentPath.startsWith('/scanner') ? 'active' : '' %>" id="subnav-scan">
+          <span>👁️</span> <span><%= T.nav_scanner || 'OpenCV Scanner' %></span>
+        </a>
+        <a href="/resource-planner/" class="kri-subnav-link <%= currentPath.startsWith('/resource-planner') ? 'active' : '' %>" id="subnav-plan">
+          <span>🌱</span> <span><%= T.nav_planner || 'Resource Planner' %></span>
+        </a>
+        <a href="/marketplace/" class="kri-subnav-link <%= currentPath.startsWith('/marketplace') ? 'active' : '' %>" id="subnav-market">
+          <span>🏪</span> <span><%= T.nav_market || 'Marketplace & Mandi' %></span>
+        </a>
+        <a href="/analytics/" class="kri-subnav-link <%= currentPath.startsWith('/analytics') ? 'active' : '' %>" id="subnav-analytics">
+          <span>📈</span> <span><%= T.nav_analytics || 'Profit & Utilization' %></span>
+        </a>
+        <a href="/weather/" class="kri-subnav-link <%= currentPath.startsWith('/weather') ? 'active' : '' %>" id="subnav-weather">
+          <span>☀️</span> <span><%= T.nav_weather || '5-Day Weather' %></span>
+        </a>
+        <a href="/crafting/" class="kri-subnav-link <%= currentPath.startsWith('/crafting') ? 'active' : '' %>" id="subnav-craft">
+          <span>🛠️</span> <span><%= T.nav_crafting || 'Tool Crafting' %></span>
+        </a>
+        <a href="/vakh/" class="kri-subnav-link <%= currentPath.startsWith('/vakh') ? 'active' : '' %>" id="subnav-vakh">
+          <span>📋</span> <span><%= T.nav_vakh || 'Vakh Forms' %></span>
+          <span class="badge bg-warning text-dark ms-1" style="font-size: 0.65rem;">3 Forms</span>
+        </a>
+      </div>
+    </div>
+  </header>
+  <main class="container-fluid container-xl py-4" id="main-content">
+

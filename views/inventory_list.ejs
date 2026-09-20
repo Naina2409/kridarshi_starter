@@ -1,0 +1,197 @@
+<%- include('partials/header') %>
+
+<div class="row g-4">
+  <div class="col-12">
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div>
+          <h5 class="mb-0 fw-bold d-flex align-items-center gap-2">
+            <span>📦</span> <%= T.inventory || 'Inventory Management' %>
+          </h5>
+          <small class="text-muted">Track farm storage, monitor out-of-stock thresholds, and trigger automated restock alerts</small>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <a href="/inventory/add/" class="btn btn-success btn-sm fw-semibold d-flex align-items-center gap-1 shadow-sm px-3" id="add-item-btn">
+            <span>+</span> <span><%= T.add_item %></span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card-body p-4">
+        <!-- Stats bar -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-3 col-sm-6">
+            <div class="p-3 bg-light rounded-3 border">
+              <div class="small text-muted fw-semibold">Total Stocked SKUs</div>
+              <div class="stat-number text-dark my-1"><%= inventory_rows.length %></div>
+              <div class="small text-muted">Across all storage categories</div>
+            </div>
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <div class="p-3 bg-light rounded-3 border">
+              <div class="small text-muted fw-semibold">Stock Depleted / Low</div>
+              <div class="stat-number text-danger my-1">
+                <%= inventory_rows.filter(r => r.item.quantity <= r.item.low_stock_threshold).length %>
+              </div>
+              <div class="small text-muted">Requires replenishment</div>
+            </div>
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <div class="p-3 bg-light rounded-3 border">
+              <div class="small text-muted fw-semibold">Expiring Within 5 Days</div>
+              <div class="stat-number text-warning-emphasis my-1">
+                <%= inventory_rows.filter(r => r.is_expiring_soon).length %>
+              </div>
+              <div class="small text-muted">Prioritize usage or sale</div>
+            </div>
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <div class="p-3 bg-light rounded-3 border">
+              <div class="small text-muted fw-semibold">Crafting Eligible Blueprints</div>
+              <div class="stat-number text-success my-1">4</div>
+              <div class="small text-muted">Available in workshop</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter & Search Toolbar -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+          <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-secondary active" onclick="filterCategory('all')">All Items</button>
+            <button type="button" class="btn btn-outline-secondary" onclick="filterCategory('seed')">Seeds</button>
+            <button type="button" class="btn btn-outline-secondary" onclick="filterCategory('fertilizer')">Fertilizers</button>
+            <button type="button" class="btn btn-outline-secondary" onclick="filterCategory('tool')">Tools & Scrap</button>
+            <button type="button" class="btn btn-outline-secondary" onclick="filterCategory('produce')">Harvested Produce</button>
+          </div>
+          <div style="max-width: 280px;" class="w-100">
+            <input type="text" id="inventory-search" class="form-control form-control-sm" placeholder="🔍 Search item name..." oninput="filterSearch(this.value)">
+          </div>
+        </div>
+
+        <!-- Inventory Items Table -->
+        <div class="table-responsive">
+          <table class="table table-hover align-middle border mb-0" id="inventory-list-table">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3"><%= T.item %></th>
+                <th><%= T.category %></th>
+                <th><%= T.qty %></th>
+                <th>Status</th>
+                <th><%= T.expiry %></th>
+                <th class="text-center">Quick Adjust</th>
+                <th class="pe-3 text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% for (const row of inventory_rows) { %>
+                <% 
+                  const isOutOfStock = row.item.quantity <= 0;
+                  const isLow = row.item.quantity <= row.item.low_stock_threshold && !isOutOfStock;
+                %>
+                <tr class="inv-row" data-category="<%= row.item.category %>" data-name="<%= row.item.name.toLowerCase() %>">
+                  <td class="ps-3">
+                    <div class="fw-bold text-dark"><%= row.item.name %></div>
+                    <small class="text-muted">Threshold: <%= row.item.low_stock_threshold %> <%= row.item.unit %></small>
+                  </td>
+                  <td>
+                    <span class="badge badge-<%= row.item.category %>">
+                      <%= row.category_label %>
+                    </span>
+                  </td>
+                  <td>
+                    <div class="fs-6 fw-bold <%= isOutOfStock ? 'text-danger' : isLow ? 'text-warning-emphasis' : 'text-dark' %>">
+                      <%= row.item.quantity %> <%= row.item.unit %>
+                    </div>
+                  </td>
+                  <td>
+                    <% if (isOutOfStock) { %>
+                      <span class="badge bg-danger text-white">Out of Stock</span>
+                    <% } else if (isLow) { %>
+                      <span class="badge bg-warning-subtle text-warning-emphasis">Low Stock</span>
+                    <% } else { %>
+                      <span class="badge bg-success-subtle text-success">Healthy</span>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% if (row.item.expiry_date) { %>
+                      <span class="<%= row.is_expiring_soon ? 'text-danger fw-bold' : 'text-muted' %>">
+                        <%= row.item.expiry_date %>
+                        <% if (row.is_expiring_soon) { %>
+                          <span class="badge bg-danger-subtle text-danger ms-1">Soon</span>
+                        <% } %>
+                      </span>
+                    <% } else { %>
+                      <span class="text-muted">—</span>
+                    <% } %>
+                  </td>
+                  <td class="text-center">
+                    <div class="btn-group btn-group-sm">
+                      <form action="/inventory/update-qty/" method="POST" class="d-inline mb-0">
+                        <input type="hidden" name="id" value="<%= row.item.id %>">
+                        <input type="hidden" name="delta" value="-1">
+                        <button type="submit" class="btn btn-outline-secondary py-0 px-2" title="Decrease by 1" <%= isOutOfStock ? 'disabled' : '' %>>-1</button>
+                      </form>
+                      <form action="/inventory/update-qty/" method="POST" class="d-inline mb-0">
+                        <input type="hidden" name="id" value="<%= row.item.id %>">
+                        <input type="hidden" name="delta" value="1">
+                        <button type="submit" class="btn btn-outline-secondary py-0 px-2" title="Increase by 1">+1</button>
+                      </form>
+                      <form action="/inventory/update-qty/" method="POST" class="d-inline mb-0">
+                        <input type="hidden" name="id" value="<%= row.item.id %>">
+                        <input type="hidden" name="delta" value="10">
+                        <button type="submit" class="btn btn-outline-success py-0 px-2" title="Restock +10">+10</button>
+                      </form>
+                    </div>
+                  </td>
+                  <td class="pe-3 text-end">
+                    <form action="/inventory/delete/<%= row.item.id %>/" method="POST" class="d-inline mb-0" onsubmit="return confirm('Delete this inventory item?')">
+                      <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2" style="font-size: 0.8rem;">
+                        Delete
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let activeFilter = 'all';
+  let searchQuery = '';
+
+  function applyFilters() {
+    const rows = document.querySelectorAll(".inv-row");
+    rows.forEach(r => {
+      const cat = r.getAttribute("data-category");
+      const name = r.getAttribute("data-name");
+      const matchesCat = (activeFilter === 'all' || cat === activeFilter);
+      const matchesSearch = (!searchQuery || name.includes(searchQuery));
+      if (matchesCat && matchesSearch) {
+        r.style.display = "";
+      } else {
+        r.style.display = "none";
+      }
+    });
+  }
+
+  function filterCategory(cat) {
+    activeFilter = cat;
+    document.querySelectorAll(".btn-group button").forEach(b => {
+      b.classList.remove("active");
+    });
+    event.target.classList.add("active");
+    applyFilters();
+  }
+
+  function filterSearch(q) {
+    searchQuery = q.toLowerCase().trim();
+    applyFilters();
+  }
+</script>
+
+<%- include('partials/footer') %>

@@ -1,0 +1,280 @@
+<%- include('partials/header') %>
+<div class="row justify-content-center">
+  <div class="col-lg-10">
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+        <h5 class="mb-0 fw-bold d-flex align-items-center gap-2" id="ask-heading">
+          <span>🎙️</span> <%= T.ask_title %>
+        </h5>
+        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Voice & NLP Active</span>
+      </div>
+      <div class="card-body p-4">
+        <form method="post" action="/query/" id="ask-form" class="d-flex flex-wrap gap-2 mb-3">
+          <input class="form-control form-control-lg fs-6" id="question-input" name="question" placeholder="<%= T.ask_placeholder %>" value="<%= question || '' %>" style="min-width:260px; flex:1" autocomplete="off">
+          <button type="button" class="btn btn-outline-success d-flex align-items-center gap-1 px-3" id="mic-btn">
+            <span>🎤</span> <span><%= T.record %></span>
+          </button>
+          <button type="submit" class="btn btn-success d-flex align-items-center gap-1 px-4 fw-semibold" id="ask-submit-btn">
+            <span><%= T.ask %></span>
+          </button>
+        </form>
+        <p class="text-muted small mb-3" id="mic-status"><%= T.speak_hint %></p>
+
+        <!-- Quick Query Suggestion Chips -->
+        <div class="mb-4">
+          <div class="small fw-semibold text-muted mb-2">Try asking:</div>
+          <div class="d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill py-1 px-3" onclick="submitQuickQuery('Is banana out of stock?')">
+              🍌 Is banana out of stock?
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill py-1 px-3" onclick="submitQuickQuery('What is the wheat market price in mandi?')">
+              🌾 Wheat mandi price?
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill py-1 px-3" onclick="submitQuickQuery('What is the 5-day weather forecast?')">
+              ☀️ 5-day weather forecast?
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill py-1 px-3" onclick="submitQuickQuery('Which crop has highest profit and ROI?')">
+              📈 Crop profit & ROI?
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill py-1 px-3" onclick="submitQuickQuery('What items are low in stock?')">
+              📦 Low stock items?
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill py-1 px-3" onclick="submitQuickQuery('What can I craft with my inventory?')">
+              🛠️ Tools I can craft?
+            </button>
+          </div>
+        </div>
+
+        <% if (answer) { %>
+        <div class="alert alert-success border-success-subtle bg-success-subtle bg-opacity-25 d-flex justify-content-between align-items-start gap-3 p-3 shadow-sm rounded-3" id="answer-alert">
+          <div>
+            <div class="fw-bold text-success mb-1 d-flex align-items-center gap-1">
+              <span>🌾</span> KriDarshi Advisory:
+            </div>
+            <div id="answer-text" class="text-dark"><%= answer %></div>
+          </div>
+          <button type="button" class="btn btn-sm btn-success fw-semibold shadow-sm d-flex align-items-center gap-1 text-nowrap" id="listen-answer">
+            <span>🔊</span> <span><%= T.listen %></span>
+          </button>
+        </div>
+        <script id="answer-json" type="application/json"><%- JSON.stringify(answer) %></script>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function submitQuickQuery(q) {
+    const input = document.getElementById("question-input");
+    input.value = q;
+    document.getElementById("ask-form").submit();
+  }
+</script>
+
+<script>
+  const micBtn = document.getElementById("mic-btn");
+  const input = document.getElementById("question-input");
+  const statusEl = document.getElementById("mic-status");
+  const listenBtn = document.getElementById("listen-answer");
+  const currentLang = (window.KRIDARSHI && window.KRIDARSHI.lang) || "en";
+  const speechLang = { en: "en-IN", hi: "hi-IN", pa: "pa-IN" }[currentLang] || "en-IN";
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const hint = statusEl ? statusEl.textContent : "";
+
+  if (listenBtn) {
+    listenBtn.addEventListener("click", () => {
+      window.kridarshiSpeak(JSON.parse(document.getElementById("answer-json").textContent));
+    });
+  }
+
+  let recorder = null;
+  let chunks = [];
+  let recognition = null;
+  let liveText = "";
+  let stream = null;
+  let silenceTimer = null;
+  let maxTimer = null;
+  let heardSpeech = false;
+
+  function setStatus(text) {
+    statusEl.textContent = text;
+  }
+
+  function showInChatBar(text) {
+    if (!text) return;
+    liveText = text.trim();
+    input.value = liveText;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.focus();
+    try { input.setSelectionRange(input.value.length, input.value.length); } catch (e) {}
+  }
+
+  function pickMime() {
+    const types = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg"];
+    if (!window.MediaRecorder) return "";
+    return types.find((t) => MediaRecorder.isTypeSupported(t)) || "";
+  }
+
+  function encodeWav(buffer) {
+    const samples = buffer.numberOfChannels ? buffer.getChannelData(0) : buffer;
+    const rate = buffer.sampleRate || 16000;
+    const pcm = new Int16Array(samples.length);
+    for (let i = 0; i < samples.length; i++) {
+      const s = Math.max(-1, Math.min(1, samples[i]));
+      pcm[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+    }
+    const bytes = pcm.byteLength;
+    const out = new ArrayBuffer(44 + bytes);
+    const view = new DataView(out);
+    const write = (offset, str) => { for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i)); };
+    write(0, "RIFF");
+    view.setUint32(4, 36 + bytes, true);
+    write(8, "WAVE");
+    write(12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, rate, true);
+    view.setUint32(28, rate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    write(36, "data");
+    view.setUint32(40, bytes, true);
+    new Uint8Array(out, 44).set(new Uint8Array(pcm.buffer));
+    return new Blob([out], { type: "audio/wav" });
+  }
+
+  async function toWav(blob) {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const decoded = await ctx.decodeAudioData(await blob.arrayBuffer());
+    const wav = encodeWav(decoded);
+    ctx.close();
+    return wav;
+  }
+
+  function startLiveTranscript() {
+    liveText = "";
+    if (!SpeechRecognition) return;
+    try {
+      recognition = new SpeechRecognition();
+      recognition.lang = speechLang;
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.onresult = (event) => {
+        heardSpeech = true;
+        let text = "";
+        for (let i = 0; i < event.results.length; i++) {
+          text += event.results[i][0].transcript + " ";
+        }
+        showInChatBar(text.replace(/\s+/g, " "));
+        scheduleSilenceStop();
+      };
+      recognition.onerror = (event) => {
+        if (event.error !== "no-speech" && event.error !== "aborted") {
+          setStatus(window.KRIDARSHI.transcribeError + " (" + event.error + ")");
+        }
+      };
+      recognition.start();
+    } catch (err) {}
+  }
+
+  function stopLiveTranscript() {
+    if (!recognition) return;
+    try { recognition.stop(); } catch (err) {}
+    recognition = null;
+  }
+
+  function clearTimers() {
+    if (silenceTimer) clearTimeout(silenceTimer);
+    if (maxTimer) clearTimeout(maxTimer);
+    silenceTimer = null;
+    maxTimer = null;
+  }
+
+  function scheduleSilenceStop() {
+    if (silenceTimer) clearTimeout(silenceTimer);
+    silenceTimer = setTimeout(() => {
+      if (recorder && recorder.state === "recording") recorder.stop();
+    }, 1800);
+  }
+
+  async function finishRecording() {
+    clearTimers();
+    stopLiveTranscript();
+    if (stream) stream.getTracks().forEach((t) => t.stop());
+    stream = null;
+    micBtn.disabled = true;
+    micBtn.textContent = window.KRIDARSHI.record;
+    setStatus(window.KRIDARSHI.converting);
+    const raw = new Blob(chunks, { type: (recorder && recorder.mimeType) || "audio/webm" });
+    chunks = [];
+    recorder = null;
+    let spoken = liveText;
+    if (!spoken && window.KRIDARSHI.voiceEnabled) {
+      try {
+        let upload = raw;
+        let name = "question.webm";
+        try {
+          upload = await toWav(raw);
+          name = "question.wav";
+        } catch (err) {}
+        const data = new FormData();
+        data.append("audio", upload, name);
+        const res = await fetch(window.KRIDARSHI.transcribeUrl, {
+          method: "POST",
+          body: data,
+        });
+        if (res.ok) {
+          const payload = await res.json();
+          if (payload.text) spoken = payload.text;
+        }
+      } catch (err) {}
+    }
+    micBtn.disabled = false;
+    if (!spoken) {
+      setStatus(window.KRIDARSHI.transcribeError);
+      alert(window.KRIDARSHI.transcribeError);
+      return;
+    }
+    showInChatBar(spoken);
+    setStatus(hint);
+  }
+
+  async function startRecording() {
+    if (!window.KRIDARSHI.voiceEnabled && !SpeechRecognition) {
+      alert(window.KRIDARSHI.missing);
+      return;
+    }
+    heardSpeech = false;
+    chunks = [];
+    input.value = "";
+    liveText = "";
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    startLiveTranscript();
+    const mime = pickMime();
+    recorder = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+    recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+    recorder.onstop = finishRecording;
+    recorder.start(200);
+    micBtn.textContent = window.KRIDARSHI.stop;
+    setStatus(window.KRIDARSHI.recording);
+    maxTimer = setTimeout(() => {
+      if (recorder && recorder.state === "recording") recorder.stop();
+    }, 10000);
+  }
+
+  micBtn.addEventListener("click", async () => {
+    try {
+      if (recorder && recorder.state === "recording") {
+        recorder.stop();
+        return;
+      }
+      await startRecording();
+    } catch (err) {
+      alert(window.KRIDARSHI.micError);
+      setStatus(window.KRIDARSHI.micError);
+    }
+  });
+</script>
+<%- include('partials/footer') %>

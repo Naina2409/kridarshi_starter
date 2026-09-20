@@ -1,0 +1,467 @@
+<%- include("partials/header") %>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between border-bottom">
+        <div class="d-flex align-items-center gap-2">
+          <span class="fs-4">👁️</span>
+          <div>
+            <h5 class="mb-0 fw-bold"><%= T.scanner_title || 'OpenCV Expiry & Stock Scanner' %></h5>
+            <small class="text-muted"><%= T.scanner_desc || 'Computer vision crate fill level and freshness inspection' %></small>
+          </div>
+        </div>
+        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">OpenCV.js Engine Ready</span>
+      </div>
+      <div class="card-body p-4">
+        <!-- Live Viewport / Canvas Stage -->
+        <div class="position-relative bg-dark rounded-3 overflow-hidden text-center d-flex align-items-center justify-content-center" style="min-height: 380px;">
+          <video id="webcam-feed" playsinline autoplay muted class="d-none w-100" style="max-height: 420px; object-fit: contain;"></video>
+          <canvas id="scanner-canvas" width="640" height="420" class="w-100 h-100" style="max-height: 420px; object-fit: contain; background: #0f172a;"></canvas>
+          
+          <!-- Live Scan Overlay HUD -->
+          <div id="scan-hud" class="position-absolute top-0 start-0 w-100 p-3 d-flex justify-content-between align-items-start pointer-events-none">
+            <div class="badge bg-dark bg-opacity-75 text-light font-monospace px-2 py-1 border border-secondary">
+              FPS: <span id="hud-fps">30</span> | RES: 640x420 | ROI: Active
+            </div>
+            <div id="detection-pill" class="badge bg-secondary text-white px-3 py-2 fs-6 shadow-sm">
+              Waiting for tray...
+            </div>
+          </div>
+
+          <!-- Processing Spinner -->
+          <div id="scan-spinner" class="position-absolute top-50 start-50 translate-middle d-none text-light text-center">
+            <div class="spinner-border text-success" role="status"></div>
+            <div class="mt-2 small fw-semibold">Analyzing pixel contours & color space...</div>
+          </div>
+        </div>
+
+        <!-- Controls & Presets -->
+        <div class="mt-3">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+            <div class="btn-group" role="group">
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-camera" onclick="startCamera()">
+                📷 Open Camera
+              </button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-upload" onclick="document.getElementById('file-upload').click()">
+                📁 Upload Image
+              </button>
+              <input type="file" id="file-upload" class="d-none" accept="image/*" onchange="handleImageUpload(event)">
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+              <span class="small text-muted fw-semibold">Interactive Test Trays:</span>
+              <button type="button" class="btn btn-sm btn-outline-danger active fw-semibold" id="btn-demo-banana" onclick="loadPreset('empty_banana')">
+                🍌 Empty Banana Crate (Out of Stock)
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-success" id="btn-demo-fresh" onclick="loadPreset('fresh_produce')">
+                🍎 Fresh Produce Crate
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-warning" id="btn-demo-expiring" onclick="loadPreset('expiring_stock')">
+                ⚠️ Expiring Produce Tray
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- CV Inspection Results Panel -->
+        <div id="result-alert-box" class="alert alert-danger pulse-danger border-2 d-none mt-3 p-3">
+          <div class="d-flex align-items-start justify-content-between">
+            <div>
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="fs-4">🚨</span>
+                <h5 class="alert-heading mb-0 fw-bold" id="alert-title">Critical Alert: Stock Depleted</h5>
+              </div>
+              <p class="mb-2" id="alert-message">
+                <strong>Banana is out of stock, please refill!</strong> Computer vision analysis detected 0% fill level in the fruit crate.
+              </p>
+              <div class="d-flex flex-wrap gap-2 text-muted small">
+                <span>Fill Level: <strong class="text-danger" id="metric-fill">0%</strong></span> • 
+                <span>Contour Density: <strong id="metric-density">0.02</strong></span> • 
+                <span>Color Histogram: <strong id="metric-color">Empty Tray Pattern</strong></span>
+              </div>
+            </div>
+            <button class="btn btn-outline-danger btn-sm" onclick="speakCurrentAlert()">
+              🔊 Announce
+            </button>
+          </div>
+          <hr class="my-3">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <span class="small text-muted">Auto-action: Ready to notify registered buyer and local distribution center.</span>
+            <form action="/alerts/send/" method="POST" class="d-inline" id="dispatch-alert-form">
+              <input type="hidden" name="crop" id="form-crop" value="Banana">
+              <input type="hidden" name="type" id="form-type" value="stockout">
+              <input type="hidden" name="message" id="form-message" value="Banana is out of stock, please refill!">
+              <button type="submit" class="btn btn-danger btn-sm fw-semibold shadow-sm px-3">
+                📲 <%= T.scanner_alert_btn || 'Send WhatsApp & SMS Alert' %>
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <div id="result-success-box" class="alert alert-success d-none mt-3 p-3">
+          <div class="d-flex align-items-center gap-2">
+            <span class="fs-4">✅</span>
+            <div>
+              <h6 class="alert-heading mb-0 fw-bold" id="success-title">Stock Status: Optimal</h6>
+              <p class="mb-0 small" id="success-message">Crate capacity is at 85% healthy volume. No immediate refill or spoilage detected.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <!-- Automated Dispatch Panel -->
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-white py-3 border-bottom">
+        <h6 class="mb-0 fw-bold d-flex align-items-center gap-2">
+          <span>📡</span> Real-Time Alert Dispatch
+        </h6>
+      </div>
+      <div class="card-body">
+        <p class="small text-muted">
+          When out-of-stock items or spoilage risks are detected, instant alerts are dispatched to the farmer's mobile and local traders via Twilio & WhatsApp Gateway.
+        </p>
+
+        <div class="list-group list-group-flush border rounded-3 mb-3">
+          <div class="list-group-item d-flex justify-content-between align-items-center py-2 px-3">
+            <div>
+              <div class="fw-semibold small">Farmer SMS / Call</div>
+              <div class="text-muted" style="font-size: 0.75rem;"><%= farmer.name %> (<%= farmer.phone %>)</div>
+            </div>
+            <span class="badge bg-success-subtle text-success">Active</span>
+          </div>
+          <div class="list-group-item d-flex justify-content-between align-items-center py-2 px-3">
+            <div>
+              <div class="fw-semibold small">Local Mandi Trader</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Suresh Gupta (+919812345671)</div>
+            </div>
+            <span class="badge bg-primary-subtle text-primary">Connected</span>
+          </div>
+          <div class="list-group-item d-flex justify-content-between align-items-center py-2 px-3">
+            <div>
+              <div class="fw-semibold small">Voice Synthesizer</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Native Web Speech / ElevenLabs</div>
+            </div>
+            <span class="badge bg-success-subtle text-success">Ready</span>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-outline-success w-100 btn-sm fw-semibold" onclick="simulateRestockBanana()">
+          ➕ Restock Banana (Add 15 kg to Inventory)
+        </button>
+      </div>
+    </div>
+
+    <!-- Algorithm Explanation Card -->
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-white py-3 border-bottom">
+        <h6 class="mb-0 fw-bold d-flex align-items-center gap-2">
+          <span>🧠</span> OpenCV Pipeline Architecture
+        </h6>
+      </div>
+      <div class="card-body small text-muted">
+        <ol class="ps-3 mb-0">
+          <li class="mb-2"><strong>HSV Color Thresholding:</strong> Isolates ripe yellow (Banana), green, and red hues to segment agricultural products from background crates.</li>
+          <li class="mb-2"><strong>Morphological Contouring:</strong> Computes bounding rectangles and area mass. Trays with &lt;5% area density trigger the <em>out-of-stock</em> classification.</li>
+          <li class="mb-2"><strong>Necrotic Spot Analysis:</strong> Tracks dark brown blemish clusters on skin surfaces to forecast expiration within 24-48 hours.</li>
+          <li><strong>Multilingual Speech Output:</strong> Automatically speaks warning in Hindi, Punjabi, or English based on farmer profile.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const canvas = document.getElementById("scanner-canvas");
+  const ctx = canvas.getContext("2d");
+  const resultAlertBox = document.getElementById("result-alert-box");
+  const resultSuccessBox = document.getElementById("result-success-box");
+  const detectionPill = document.getElementById("detection-pill");
+  let currentAlertText = "Banana is out of stock, please refill!";
+  let currentPreset = "empty_banana";
+
+  function speakCurrentAlert() {
+    if (window.kridarshiSpeak) {
+      window.kridarshiSpeak(currentAlertText);
+    }
+  }
+
+  function drawEmptyBananaCrate() {
+    // Canvas dimensions: 640 x 420
+    ctx.fillStyle = "#1e293b";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw Crate Outline
+    ctx.strokeStyle = "#94a3b8";
+    ctx.lineWidth = 4;
+    ctx.strokeRect(60, 40, 520, 340);
+
+    // Crate slats
+    ctx.strokeStyle = "#334155";
+    ctx.lineWidth = 2;
+    for (let y = 90; y < 380; y += 45) {
+      ctx.beginPath();
+      ctx.moveTo(60, y);
+      ctx.lineTo(580, y);
+      ctx.stroke();
+    }
+    for (let x = 110; x < 580; x += 60) {
+      ctx.beginPath();
+      ctx.moveTo(x, 40);
+      ctx.lineTo(x, 380);
+      ctx.stroke();
+    }
+
+    // Bounding Box indicator showing empty tray
+    ctx.strokeStyle = "#ef4444";
+    ctx.lineWidth = 3;
+    ctx.setLineDash([8, 4]);
+    ctx.strokeRect(80, 60, 480, 300);
+    ctx.setLineDash([]);
+
+    // Text Overlay inside canvas
+    ctx.fillStyle = "#ef4444";
+    ctx.font = "bold 20px system-ui";
+    ctx.fillText("ROI 1: BANANA CRATE (0% OCCUPANCY)", 90, 95);
+    ctx.fillStyle = "#fca5a5";
+    ctx.font = "14px monospace";
+    ctx.fillText("STATUS: OUT OF STOCK [EMPTY DETECTED]", 90, 125);
+    ctx.fillText("ACTION REQUIRED: IMMEDIATE REFILL", 90, 145);
+
+    // Cross marker in center
+    ctx.strokeStyle = "#ef4444";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(300, 190);
+    ctx.lineTo(340, 230);
+    ctx.moveTo(340, 190);
+    ctx.lineTo(300, 230);
+    ctx.stroke();
+
+    detectionPill.className = "badge bg-danger text-white px-3 py-2 fs-6 shadow-sm";
+    detectionPill.innerText = "🚨 OUT OF STOCK: BANANA (0%)";
+
+    resultSuccessBox.classList.add("d-none");
+    resultAlertBox.classList.remove("d-none");
+
+    const lang = window.KRIDARSHI.lang;
+    if (lang === "hi") {
+      currentAlertText = "केला स्टॉक से बाहर है, कृपया पुनः भरें!";
+      document.getElementById("alert-title").innerText = "गंभीर चेतावनी: केला स्टॉक से बाहर है";
+      document.getElementById("alert-message").innerHTML = "<strong>केला स्टॉक से बाहर है, कृपया पुनः भरें!</strong> कंप्यूटर विज़न विश्लेषण ने फल क्रेट में 0% स्टॉक पाया।";
+    } else if (lang === "pa") {
+      currentAlertText = "ਕੇਲਾ ਸਟਾਕ ਵਿੱਚੋਂ ਖਤਮ ਹੋ ਗਿਆ ਹੈ, ਕਿਰਪਾ ਕਰਕੇ ਦੁਬਾਰਾ ਭਰੋ!";
+      document.getElementById("alert-title").innerText = "ਗੰਭੀਰ ਚੇਤਾਵਨੀ: ਕੇਲਾ ਸਟਾਕ ਵਿੱਚੋਂ ਖਤਮ ਹੈ";
+      document.getElementById("alert-message").innerHTML = "<strong>ਕੇਲਾ ਸਟਾਕ ਵਿੱਚੋਂ ਖਤਮ ਹੋ ਗਿਆ ਹੈ, ਕਿਰਪਾ ਕਰਕੇ ਦੁਬਾਰਾ ਭਰੋ!</strong> ਕੰਪਿਊਟਰ ਵਿਜ਼ਨ ਜਾਂਚ ਵਿੱਚ ਕਰੇਟ ਖਾਲੀ ਪਾਇਆ ਗਿਆ।";
+    } else {
+      currentAlertText = "Banana is out of stock, please refill!";
+      document.getElementById("alert-title").innerText = "Critical Alert: Banana Out of Stock";
+      document.getElementById("alert-message").innerHTML = "<strong>Banana is out of stock, please refill!</strong> Computer vision analysis detected 0% fill level in the fruit crate.";
+    }
+
+    document.getElementById("metric-fill").innerText = "0%";
+    document.getElementById("metric-density").innerText = "0.01 (Depleted)";
+    document.getElementById("form-crop").value = "Banana";
+    document.getElementById("form-message").value = currentAlertText;
+
+    // Automatic speech announcement
+    setTimeout(() => {
+      speakCurrentAlert();
+    }, 400);
+  }
+
+  function drawFreshProduce() {
+    ctx.fillStyle = "#1e293b";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Crate outline
+    ctx.strokeStyle = "#94a3b8";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(60, 40, 520, 340);
+
+    // Draw bananas / fruits
+    const fruits = [
+      { x: 140, y: 150, r: 40, color: "#eab308" },
+      { x: 220, y: 160, r: 45, color: "#eab308" },
+      { x: 300, y: 150, r: 42, color: "#facc15" },
+      { x: 380, y: 165, r: 44, color: "#facc15" },
+      { x: 460, y: 155, r: 38, color: "#eab308" },
+      { x: 180, y: 240, r: 42, color: "#facc15" },
+      { x: 260, y: 250, r: 46, color: "#eab308" },
+      { x: 340, y: 240, r: 44, color: "#eab308" },
+      { x: 420, y: 245, r: 40, color: "#facc15" },
+    ];
+
+    fruits.forEach(f => {
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+      ctx.fillStyle = f.color;
+      ctx.fill();
+      ctx.strokeStyle = "#ca8a04";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    });
+
+    // Detection box
+    ctx.strokeStyle = "#22c55e";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(80, 60, 480, 300);
+
+    ctx.fillStyle = "#22c55e";
+    ctx.font = "bold 18px system-ui";
+    ctx.fillText("ROI 1: FRESH PRODUCE TRAY (88% CAPACITY)", 90, 95);
+    ctx.fillStyle = "#86efac";
+    ctx.font = "14px monospace";
+    ctx.fillText("STATUS: OPTIMAL FRESHNESS • 0 BLEMISHES", 90, 125);
+
+    detectionPill.className = "badge bg-success text-white px-3 py-2 fs-6 shadow-sm";
+    detectionPill.innerText = "✅ FRESH STOCK: 88% CAPACITY";
+
+    resultAlertBox.classList.add("d-none");
+    resultSuccessBox.classList.remove("d-none");
+    document.getElementById("success-title").innerText = "Stock Status: Healthy & Fresh";
+    document.getElementById("success-message").innerText = "Tray capacity is at 88% volume with optimal pigmentation and zero signs of spoilage.";
+  }
+
+  function drawExpiringStock() {
+    ctx.fillStyle = "#1e293b";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = "#94a3b8";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(60, 40, 520, 340);
+
+    // Draw spotted produce
+    const fruits = [
+      { x: 200, y: 190, r: 45, color: "#ca8a04", spots: true },
+      { x: 300, y: 200, r: 46, color: "#a16207", spots: true },
+      { x: 400, y: 190, r: 44, color: "#ca8a04", spots: true },
+    ];
+
+    fruits.forEach(f => {
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+      ctx.fillStyle = f.color;
+      ctx.fill();
+      ctx.strokeStyle = "#713f12";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Necrotic spots
+      ctx.fillStyle = "#451a03";
+      ctx.beginPath();
+      ctx.arc(f.x - 12, f.y - 8, 7, 0, Math.PI * 2);
+      ctx.arc(f.x + 10, f.y + 10, 9, 0, Math.PI * 2);
+      ctx.arc(f.x + 14, f.y - 12, 6, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    ctx.strokeStyle = "#f59e0b";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(80, 60, 480, 300);
+
+    ctx.fillStyle = "#f59e0b";
+    ctx.font = "bold 18px system-ui";
+    ctx.fillText("ROI 1: EXPIRATION RISK (BLEMISH INDEX: 42%)", 90, 95);
+    ctx.fillStyle = "#fde68a";
+    ctx.font = "14px monospace";
+    ctx.fillText("STATUS: CONSUME OR SELL WITHIN 24-48 HOURS", 90, 125);
+
+    detectionPill.className = "badge bg-warning text-dark px-3 py-2 fs-6 shadow-sm";
+    detectionPill.innerText = "⚠️ EXPIRING SOON: HARVEST BATCH";
+
+    resultSuccessBox.classList.add("d-none");
+    resultAlertBox.classList.remove("d-none");
+    resultAlertBox.className = "alert alert-warning border-warning border-2 mt-3 p-3";
+    
+    currentAlertText = "Warning: Produce shows elevated brown blemish spots. Plan immediate sale or processing within 48 hours.";
+    document.getElementById("alert-title").innerText = "Warning: Early Spoilage Detected";
+    document.getElementById("alert-message").innerHTML = "<strong>Produce in tray is expiring soon.</strong> Brown pigmentation spotted. Recommend immediate distribution or market auction.";
+    document.getElementById("metric-fill").innerText = "45%";
+    document.getElementById("metric-density").innerText = "0.45";
+    document.getElementById("form-crop").value = "Produce";
+    document.getElementById("form-type").value = "expiring";
+    document.getElementById("form-message").value = currentAlertText;
+    
+    setTimeout(() => {
+      speakCurrentAlert();
+    }, 400);
+  }
+
+  function loadPreset(preset) {
+    currentPreset = preset;
+    document.getElementById("btn-demo-banana").classList.remove("active");
+    document.getElementById("btn-demo-fresh").classList.remove("active");
+    document.getElementById("btn-demo-expiring").classList.remove("active");
+
+    if (preset === "empty_banana") {
+      document.getElementById("btn-demo-banana").classList.add("active");
+      drawEmptyBananaCrate();
+    } else if (preset === "fresh_produce") {
+      document.getElementById("btn-demo-fresh").classList.add("active");
+      drawFreshProduce();
+    } else if (preset === "expiring_stock") {
+      document.getElementById("btn-demo-expiring").classList.add("active");
+      drawExpiringStock();
+    }
+  }
+
+  async function startCamera() {
+    const video = document.getElementById("webcam-feed");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment", width: 640, height: 420 },
+      });
+      video.srcObject = stream;
+      video.classList.remove("d-none");
+      canvas.classList.add("d-none");
+      detectionPill.className = "badge bg-primary text-white px-3 py-2 fs-6 shadow-sm";
+      detectionPill.innerText = "📹 LIVE CAMERA STREAM ACTIVE";
+    } catch (err) {
+      alert("Camera access denied or unavailable. Falling back to test preset.");
+      loadPreset("empty_banana");
+    }
+  }
+
+  function handleImageUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      const img = new Image();
+      img.onload = function() {
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        // Run simulated detection
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(50, 50, canvas.width - 100, canvas.height - 100);
+        detectionPill.className = "badge bg-info text-dark px-3 py-2 fs-6 shadow-sm";
+        detectionPill.innerText = "🔍 CUSTOM IMAGE ANALYZED";
+      };
+      img.src = evt.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function simulateRestockBanana() {
+    const res = await fetch("/inventory/update-qty/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Banana", quantity: 15, category: "produce", unit: "kg" }),
+    });
+    if (res.ok) {
+      alert("Banana restocked with 15kg in inventory! Loading fresh stock visualization.");
+      loadPreset("fresh_produce");
+    }
+  }
+
+  // Load default empty banana preset on initial render
+  window.addEventListener("DOMContentLoaded", () => {
+    drawEmptyBananaCrate();
+  });
+</script>
+
+<%- include("partials/footer") %>

@@ -1,0 +1,89 @@
+<%- include('../partials/header') %>
+
+<div class="row justify-content-center py-3">
+  <div class="col-md-8 col-lg-6">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+        <h5 class="mb-0 fw-bold d-flex align-items-center gap-2">
+          <span>📝</span> <%= T.auth_create_account || 'Create Account' %>
+        </h5>
+        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><%= T.auth_linkage_badge || 'Farmer & Mandi Linkage' %></span>
+      </div>
+      <div class="card-body p-4">
+        <% if (locals.error && error) { %>
+          <div class="alert alert-danger py-2 px-3 small d-flex align-items-center gap-2 mb-3">
+            <span>⚠️</span> <span><%= error %></span>
+          </div>
+        <% } %>
+
+        <form action="/auth/register/" method="POST" id="register-form">
+          <div class="mb-3">
+            <label for="reg-role" class="form-label small fw-semibold text-muted"><%= T.auth_account_role || 'Account Role' %></label>
+            <div class="row g-2">
+              <div class="col-6">
+                <input type="radio" class="btn-check" name="role" id="role-farmer" value="farmer" checked>
+                <label class="btn btn-outline-success w-100 py-2 text-center" for="role-farmer">
+                  <span class="fs-5 d-block mb-1">👨‍🌾</span>
+                  <strong><%= T.auth_role_farmer || 'Farmer / Grower' %></strong>
+                  <div style="font-size: 0.72rem;" class="opacity-75"><%= T.auth_role_farmer_desc || 'Inventory & Vision Scanner' %></div>
+                </label>
+              </div>
+              <div class="col-6">
+                <input type="radio" class="btn-check" name="role" id="role-trader" value="trader">
+                <label class="btn btn-outline-primary w-100 py-2 text-center" for="role-trader">
+                  <span class="fs-5 d-block mb-1">🏪</span>
+                  <strong><%= T.auth_role_trader || 'Mandi Trader' %></strong>
+                  <div style="font-size: 0.72rem;" class="opacity-75"><%= T.auth_role_trader_desc || 'Bids & Harvest Procurement' %></div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="reg-name" class="form-label small fw-semibold text-muted"><%= T.auth_fullname || 'Full Name / Farm / Business Name' %></label>
+            <input type="text" name="name" id="reg-name" class="form-control" placeholder="<%= T.auth_fullname_placeholder || 'e.g. Ramesh Kumar or Kisan Agri Farms' %>" value="<%= locals.name || '' %>" required autocomplete="name">
+          </div>
+
+          <div class="mb-3">
+            <label for="reg-phone" class="form-label small fw-semibold text-muted"><%= T.auth_phone || 'Mobile Number (For SMS & WhatsApp Alerts)' %></label>
+            <div class="input-group">
+              <span class="input-group-text bg-light text-muted small">+91</span>
+              <input type="tel" name="phone" id="reg-phone" class="form-control" placeholder="98XXXXXXXX" value="<%= locals.phone || '' %>" required autocomplete="tel">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="reg-village" class="form-label small fw-semibold text-muted"><%= T.auth_village || 'Village / Tehsil / Mandi Location' %></label>
+            <input type="text" name="village" id="reg-village" class="form-control" placeholder="<%= T.auth_village_placeholder || 'e.g. Sonipat, Haryana' %>" value="<%= locals.village || '' %>" required>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-sm-6">
+              <label for="reg-lang" class="form-label small fw-semibold text-muted"><%= T.auth_pref_lang || 'Preferred Language' %></label>
+              <select name="preferred_language" id="reg-lang" class="form-select">
+                <option value="English" <%= CURRENT_LANG === 'en' ? 'selected' : '' %>>English</option>
+                <option value="Hindi" <%= CURRENT_LANG === 'hi' ? 'selected' : '' %>>हिन्दी (Hindi)</option>
+                <option value="Punjabi" <%= CURRENT_LANG === 'pa' ? 'selected' : '' %>>ਪੰਜਾਬੀ (Punjabi)</option>
+              </select>
+            </div>
+            <div class="col-sm-6">
+              <label for="reg-password" class="form-label small fw-semibold text-muted"><%= T.auth_password || 'Password / PIN' %></label>
+              <input type="password" name="password" id="reg-password" class="form-control" placeholder="<%= T.auth_password_placeholder || 'Minimum 4 characters' %>" required autocomplete="new-password">
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-success w-100 py-2 fw-semibold shadow-sm mb-3">
+            <%= T.auth_btn_register || 'Complete Registration & Access Agri-OS' %>
+          </button>
+        </form>
+
+        <div class="text-center pt-2 border-top">
+          <span class="small text-muted"><%= T.auth_already_have_account || 'Already have an account?' %></span>
+          <a href="/auth/login/" class="small text-success fw-semibold ms-1"><%= T.auth_signin_link || 'Sign In here →' %></a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

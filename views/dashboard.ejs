@@ -1,0 +1,308 @@
+<%- include('partials/header') %>
+
+<div class="row g-4 mb-4">
+  <!-- Farmer Welcome & Status Banner -->
+  <div class="col-12">
+    <div class="card shadow-sm border-0 bg-white p-4">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div>
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="fs-4"><%= (locals.currentUser && locals.currentUser.role === 'trader') ? '🏪' : '👨‍🌾' %></span>
+            <h4 class="mb-0 fw-bold" id="welcome-header"><%= welcome_text %></h4>
+            <span class="badge <%= (locals.currentUser && locals.currentUser.role === 'trader') ? 'bg-primary-subtle text-primary border border-primary-subtle' : 'bg-success-subtle text-success border border-success-subtle' %> ms-2">
+              <%= (locals.currentUser && locals.currentUser.role === 'trader') ? (T.badge_trader_desc || 'Mandi Merchant • Live Bids') : (T.badge_farmer_desc || 'Soil: Loam • 2 Acres') %>
+            </span>
+            <% if (locals.currentUser) { %>
+              <span class="badge bg-light text-secondary border small">📞 <%= locals.currentUser.phone %></span>
+            <% } %>
+          </div>
+          <p class="text-muted small mb-0">
+            <%= (locals.currentUser && locals.currentUser.role === 'trader') ? (T.desc_trader_dashboard || 'Real-time Mandi price monitoring, farmer harvest inquiries, and procurement logistics.') : (T.desc_farmer_dashboard || 'Real-time agro-climatic intelligence, OpenCV inventory vision, and direct Mandi market linkages.') %>
+          </p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <button type="button" class="btn btn-outline-success btn-sm fw-semibold d-flex align-items-center gap-1 shadow-sm px-3 py-2" id="listen-summary">
+            <span>🔊</span>
+            <span><%= T.listen_summary %></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script id="speech-text" type="application/json"><%- JSON.stringify(speech_text) %></script>
+
+<!-- Top 3 Operational Metric Cards -->
+<div class="row g-4 mb-4">
+  <!-- Weather Card -->
+  <div class="col-md-4">
+    <div class="card h-100 shadow-sm border-0" id="weather-card">
+      <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+        <span class="fw-bold d-flex align-items-center gap-2">
+          <span>☀️</span> <%= T.weather %>
+        </span>
+        <a href="/weather/" class="small text-success text-decoration-none fw-semibold">View 5-Day →</a>
+      </div>
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <div>
+            <div class="stat-number text-dark"><%= weather.temp_c %>°C</div>
+            <div class="text-secondary small fw-semibold"><%= weather.condition %></div>
+          </div>
+          <span style="font-size: 2.5rem;">⛅</span>
+        </div>
+        <div class="p-2 bg-light rounded-2 small text-muted">
+          🌱 <strong>Spray Condition:</strong> Optimal between 7:00 AM – 10:30 AM before convective wind rise.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Market Prices Card -->
+  <div class="col-md-4">
+    <div class="card h-100 shadow-sm border-0" id="market-prices-card">
+      <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+        <span class="fw-bold d-flex align-items-center gap-2">
+          <span>🏪</span> <%= T.market_prices %>
+        </span>
+        <a href="/marketplace/" class="small text-success text-decoration-none fw-semibold">Direct Mandi →</a>
+      </div>
+      <div class="card-body p-4">
+        <ul class="list-unstyled mb-0">
+          <% for (const p of prices) { %>
+            <li class="d-flex align-items-center justify-content-between py-1 border-bottom border-light">
+              <span class="fw-semibold text-dark"><%= p.crop %></span>
+              <div class="d-flex align-items-center gap-2">
+                <span class="fw-bold text-success">₹<%= p.price_per_quintal %>/q</span>
+                <span class="badge <%= p.trend === 'up' ? 'bg-success-subtle text-success' : p.trend === 'down' ? 'bg-danger-subtle text-danger' : 'bg-secondary-subtle text-secondary' %>" style="font-size: 0.72rem;">
+                  <%= p.trend === 'up' ? '▲' : p.trend === 'down' ? '▼' : '■' %>
+                </span>
+              </div>
+            </li>
+          <% } %>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Real-time Alerts Card -->
+  <div class="col-md-4">
+    <div class="card h-100 shadow-sm border-0 <%= (low_stock_msgs.length > 0 || expiring_msgs.length > 0) ? 'border-warning' : '' %>" id="alerts-card">
+      <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+        <span class="fw-bold d-flex align-items-center gap-2">
+          <span>🚨</span> <%= T.alerts %>
+        </span>
+        <a href="/scanner/" class="small text-danger text-decoration-none fw-semibold">Open Scanner →</a>
+      </div>
+      <div class="card-body p-4">
+        <% if (low_stock_msgs.length === 0 && expiring_msgs.length === 0) { %>
+          <div class="text-center py-3 text-muted">
+            <span class="fs-4 d-block mb-1">✅</span>
+            <small><%= T.no_alerts %></small>
+          </div>
+        <% } %>
+        <% for (const msg of low_stock_msgs) { %>
+          <div class="d-flex align-items-center gap-2 p-2 mb-2 bg-danger-subtle rounded-2 text-danger small">
+            <span>⚠️</span> <span><%= msg %></span>
+          </div>
+        <% } %>
+        <% for (const msg of expiring_msgs) { %>
+          <div class="d-flex align-items-center gap-2 p-2 mb-2 bg-warning-subtle rounded-2 text-warning-emphasis small">
+            <span>⏳</span> <span><%= msg %></span>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Middle Section: OpenCV Vision Scanner & Resource Planner Quick Launch -->
+<div class="row g-4 mb-4">
+  <!-- OpenCV Vision Feature Callout -->
+  <div class="col-lg-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+        <h6 class="mb-0 fw-bold d-flex align-items-center gap-2">
+          <span>👁️</span> OpenCV Expiry & Out-of-Stock Vision Scanner
+        </h6>
+        <span class="badge bg-danger-subtle text-danger">Stockout Engine</span>
+      </div>
+      <div class="card-body p-4">
+        <div class="p-3 bg-light rounded-3 border mb-3">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="fw-bold text-danger">Banana Crate (Stockout Detected)</span>
+            <span class="badge bg-danger">0% Fill Level</span>
+          </div>
+          <p class="small text-muted mb-2">
+            OpenCV contour algorithms detect empty storage crates and automatically trigger voice alarms:
+            <em>"Banana is out of stock, please refill!"</em>
+          </p>
+          <div class="d-flex gap-2">
+            <a href="/scanner/" class="btn btn-outline-danger btn-sm fw-semibold">
+              Launch Live OpenCV Scanner
+            </a>
+            <button type="button" class="btn btn-danger btn-sm fw-semibold" onclick="window.kridarshiSpeak('Banana is out of stock, please refill!')">
+              🔊 Hear Voice Warning
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resource Estimate Quick Preview -->
+  <div class="col-lg-6">
+    <div class="card shadow-sm border-0 h-100" id="resource-estimate-card">
+      <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+        <h6 class="mb-0 fw-bold d-flex align-items-center gap-2">
+          <span>🌱</span> <%= T.resource_estimate %>
+        </h6>
+        <a href="/resource-planner/" class="small text-success text-decoration-none fw-semibold">Full Planner →</a>
+      </div>
+      <div class="card-body p-4">
+        <% if (estimate.found) { %>
+          <div class="row g-2 text-center mb-3">
+            <div class="col-4">
+              <div class="p-2 bg-light rounded border">
+                <div class="small text-muted">Seeds</div>
+                <div class="fw-bold text-success"><%= estimate.seed_kg %> kg</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="p-2 bg-light rounded border">
+                <div class="small text-muted">Water/day</div>
+                <div class="fw-bold text-primary"><%= estimate.water_liters_per_day %> L</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="p-2 bg-light rounded border">
+                <div class="small text-muted">Urea Fert</div>
+                <div class="fw-bold text-warning-emphasis"><%= estimate.fertilizer_kg?.urea || 50 %> kg</div>
+              </div>
+            </div>
+          </div>
+          <p class="small text-muted mb-0">
+            <strong>Advisory:</strong> <%= estimate.advisory %>
+          </p>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tool Crafting Workshop Preview -->
+<div class="row g-4 mb-4">
+  <div class="col-12">
+    <div class="card shadow-sm border-0" id="tool-suggestions-card">
+      <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+        <h6 class="mb-0 fw-bold d-flex align-items-center gap-2">
+          <span>🛠️</span> <%= T.tool_suggestions %>
+        </h6>
+        <a href="/crafting/" class="small text-success text-decoration-none fw-semibold">Open Crafting Workshop →</a>
+      </div>
+      <div class="card-body p-4">
+        <% if (tool_suggestions && tool_suggestions.length > 0) { %>
+          <div class="row g-3">
+            <% for (const s of tool_suggestions) { %>
+              <div class="col-md-4">
+                <div class="p-3 bg-light rounded-3 border h-100">
+                  <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="fs-5">💡</span>
+                    <strong class="text-dark small"><%= s %></strong>
+                  </div>
+                  <div class="text-end mt-2">
+                    <a href="/crafting/" class="btn btn-outline-success btn-sm py-0 px-2" style="font-size: 0.78rem;">
+                      View Recipe & Craft
+                    </a>
+                  </div>
+                </div>
+              </div>
+            <% } %>
+          </div>
+        <% } else { %>
+          <p class="text-muted mb-0"><%= T.no_tools %></p>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Section: Storage & Inventory Table -->
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <div>
+      <h6 class="mb-0 fw-bold d-flex align-items-center gap-2">
+        <span>📦</span> <%= T.inventory %>
+      </h6>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <a href="/inventory/add/" class="btn btn-success btn-sm fw-semibold shadow-sm" id="add-inventory-btn">
+        + <%= T.add_item %>
+      </a>
+      <a href="/inventory/" class="btn btn-outline-secondary btn-sm">Manage All Items →</a>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0" id="inventory-table">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3"><%= T.item %></th>
+            <th><%= T.category %></th>
+            <th><%= T.qty %></th>
+            <th>Status</th>
+            <th class="pe-3"><%= T.expiry %></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% for (const row of inventory_rows) { %>
+            <% 
+              const isOutOfStock = row.item.quantity <= 0;
+              const isLow = row.item.quantity <= row.item.low_stock_threshold && !isOutOfStock;
+            %>
+            <tr>
+              <td class="ps-3 fw-semibold text-dark"><%= row.item.name %></td>
+              <td>
+                <span class="badge badge-<%= row.item.category %>">
+                  <%= row.category_label %>
+                </span>
+              </td>
+              <td>
+                <span class="fw-bold <%= isOutOfStock ? 'text-danger' : isLow ? 'text-warning-emphasis' : 'text-dark' %>">
+                  <%= row.item.quantity %> <%= row.item.unit %>
+                </span>
+              </td>
+              <td>
+                <% if (isOutOfStock) { %>
+                  <span class="badge bg-danger text-white">Out of Stock</span>
+                <% } else if (isLow) { %>
+                  <span class="badge bg-warning-subtle text-warning-emphasis">Low Stock</span>
+                <% } else { %>
+                  <span class="badge bg-success-subtle text-success">Healthy</span>
+                <% } %>
+              </td>
+              <td class="pe-3">
+                <% if (row.item.expiry_date) { %>
+                  <span class="<%= row.is_expiring_soon ? 'text-danger fw-bold' : 'text-muted' %>">
+                    <%= row.item.expiry_date %>
+                  </span>
+                <% } else { %>
+                  <span class="text-muted">—</span>
+                <% } %>
+              </td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById("listen-summary")?.addEventListener("click", () => {
+    window.kridarshiSpeak(JSON.parse(document.getElementById("speech-text").textContent));
+  });
+</script>
+
+<%- include('partials/footer') %>

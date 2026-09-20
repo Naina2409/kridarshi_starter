@@ -1,0 +1,94 @@
+<%- include("partials/header") %>
+
+<div class="row g-4">
+  <div class="col-12">
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <div>
+          <h5 class="mb-0 fw-bold d-flex align-items-center gap-2">
+            <span>☀️</span> <%= T.weather_forecast_title || '5-Day Tailored Agricultural Weather Advisory' %>
+          </h5>
+          <small class="text-muted">Targeted micro-climate forecasts with precision spray and irrigation recommendations</small>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1">
+            Station: <%= farmer.village %>
+          </span>
+        </div>
+      </div>
+
+      <div class="card-body p-4">
+        <!-- 5-Day Horizontal Card Deck -->
+        <div class="row g-3 mb-4">
+          <% for (const day of forecast) { %>
+            <div class="col">
+              <div class="card h-100 border text-center p-3 <%= day.day === 'Today' ? 'border-primary shadow-sm bg-primary-subtle bg-opacity-10' : 'bg-light' %>">
+                <div class="fw-bold fs-6 text-dark"><%= day.day %></div>
+                <div class="small text-muted mb-2"><%= day.dateStr %></div>
+                <div class="fs-1 my-1"><%= day.conditionIcon %></div>
+                <div class="fs-4 fw-bold text-dark my-1">
+                  <%= day.tempMax %>° <span class="fs-6 text-muted fw-normal">/ <%= day.tempMin %>°C</span>
+                </div>
+                <div class="small fw-semibold text-secondary mb-2"><%= day.condition %></div>
+                
+                <div class="border-top pt-2 mt-auto text-start small">
+                  <div class="d-flex justify-content-between text-muted mb-1">
+                    <span>Rain Prob:</span>
+                    <strong class="<%= day.rainChancePct > 50 ? 'text-danger' : 'text-success' %>"><%= day.rainChancePct %>%</strong>
+                  </div>
+                  <div class="d-flex justify-content-between text-muted mb-1">
+                    <span>Precip:</span>
+                    <strong><%= day.rainfallMm %> mm</strong>
+                  </div>
+                  <div class="d-flex justify-content-between text-muted mb-1">
+                    <span>Humidity:</span>
+                    <strong><%= day.humidityPct %>%</strong>
+                  </div>
+                  <div class="d-flex justify-content-between text-muted mb-2">
+                    <span>Wind:</span>
+                    <strong><%= day.windSpeedKmh %> km/h</strong>
+                  </div>
+                  <div class="text-center pt-1 border-top">
+                    <span class="badge <%= day.sprayRecommendation === 'Optimal' ? 'bg-success' : day.sprayRecommendation === 'Caution' ? 'bg-warning text-dark' : 'bg-danger' %> w-100 py-1">
+                      Spray: <%= day.sprayRecommendation %>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% } %>
+        </div>
+
+        <!-- Detailed Agronomic Action Plan -->
+        <h6 class="fw-bold mb-3 d-flex align-items-center gap-2">
+          <span>🚜</span> Daily Agronomic Action Plan & Field Guidance
+        </h6>
+        <div class="list-group list-group-flush border rounded-3">
+          <% for (const day of forecast) { %>
+            <div class="list-group-item p-3 d-flex align-items-start gap-3">
+              <div class="fs-2 text-center" style="min-width: 50px;">
+                <%= day.conditionIcon %>
+                <div class="small fw-bold text-dark fs-6"><%= day.day %></div>
+              </div>
+              <div class="flex-grow-1">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                  <h6 class="mb-0 fw-bold text-dark">
+                    <%= day.condition %> (<%= day.tempMax %>°C / <%= day.tempMin %>°C, <%= day.rainfallMm %>mm Rain)
+                  </h6>
+                  <span class="badge <%= day.sprayRecommendation === 'Optimal' ? 'bg-success-subtle text-success' : day.sprayRecommendation === 'Caution' ? 'bg-warning-subtle text-warning-emphasis' : 'bg-danger-subtle text-danger' %>">
+                    Chemical Spraying: <%= day.sprayRecommendation %>
+                  </span>
+                </div>
+                <p class="mb-0 small text-muted">
+                  🌾 <%= day.agriculturalAdvisory %>
+                </p>
+              </div>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include("partials/footer") %>

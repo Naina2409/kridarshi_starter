@@ -1,0 +1,134 @@
+<%- include("partials/header") %>
+
+<div class="row g-4">
+  <div class="col-12">
+    <% if (typeof successMsg !== 'undefined' && successMsg) { %>
+      <div class="alert alert-success alert-dismissible fade show p-3" role="alert">
+        <div class="d-flex align-items-center gap-2">
+          <span class="fs-4">🎉</span>
+          <div>
+            <strong>Success!</strong> <%= successMsg %>
+          </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <% } %>
+
+    <% if (typeof errorMsg !== 'undefined' && errorMsg) { %>
+      <div class="alert alert-danger alert-dismissible fade show p-3" role="alert">
+        <div class="d-flex align-items-center gap-2">
+          <span class="fs-4">⚠️</span>
+          <div>
+            <strong>Notice:</strong> <%= errorMsg %>
+          </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <% } %>
+
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <div>
+          <h5 class="mb-0 fw-bold d-flex align-items-center gap-2">
+            <span>🛠️</span> <%= T.nav_crafting || 'Farm Tool Crafting & Material Blueprints' %>
+          </h5>
+          <small class="text-muted">Turn surplus farm scrap and raw materials into productive agricultural implements</small>
+        </div>
+        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1">
+          Automated Inventory Deduction Active
+        </span>
+      </div>
+
+      <div class="card-body p-4">
+        <div class="row g-4">
+          <% for (const recipe of recipes) { %>
+            <% 
+              let canCraft = true;
+              for (const ing of recipe.ingredients) {
+                const item = farmerItems.find(i => i.name.toLowerCase() === ing.name.toLowerCase());
+                if (!item || item.quantity < ing.quantity) {
+                  canCraft = false;
+                  break;
+                }
+              }
+            %>
+            <div class="col-lg-6">
+              <div class="card h-100 border p-3 <%= canCraft ? 'border-success shadow-sm bg-success-subtle bg-opacity-10' : 'bg-light' %>">
+                <div class="d-flex align-items-start justify-content-between mb-2">
+                  <div>
+                    <h5 class="fw-bold text-dark mb-1"><%= recipe.name %></h5>
+                    <span class="badge <%= recipe.category === 'tool' ? 'badge-tool' : 'badge-fertilizer' %>">
+                      <%= recipe.category.toUpperCase() %>
+                    </span>
+                  </div>
+                  <div class="text-end">
+                    <span class="badge bg-success text-white fs-6 py-1 px-2">
+                      Saves ₹<%= recipe.savedAmount %>
+                    </span>
+                    <div class="small text-muted mt-1">vs market buy</div>
+                  </div>
+                </div>
+
+                <p class="small text-muted mb-3"><%= recipe.description %></p>
+
+                <!-- Ingredients Checklist -->
+                <div class="mb-3">
+                  <h6 class="small fw-bold text-dark mb-2">Required Materials:</h6>
+                  <ul class="list-group list-group-flush border rounded-3 small">
+                    <% for (const ing of recipe.ingredients) { %>
+                      <% 
+                        const found = farmerItems.find(i => i.name.toLowerCase() === ing.name.toLowerCase());
+                        const hasEnough = found && found.quantity >= ing.quantity;
+                      %>
+                      <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-3">
+                        <span>
+                          <%= ing.name %>: <strong><%= ing.quantity %><%= ing.unit %></strong> needed
+                        </span>
+                        <span>
+                          <% if (hasEnough) { %>
+                            <span class="badge bg-success-subtle text-success">
+                              ✓ <%= found.quantity %><%= ing.unit %> in shed
+                            </span>
+                          <% } else { %>
+                            <span class="badge bg-danger-subtle text-danger">
+                              ✗ only <%= found ? found.quantity : 0 %><%= ing.unit %>
+                            </span>
+                          <% } %>
+                        </span>
+                      </li>
+                    <% } %>
+                  </ul>
+                </div>
+
+                <!-- Step by step instructions -->
+                <div class="mb-3">
+                  <h6 class="small fw-bold text-dark mb-1">Assembly Steps:</h6>
+                  <ol class="ps-3 mb-0 small text-muted">
+                    <% for (const step of recipe.instructions) { %>
+                      <li class="mb-1"><%= step %></li>
+                    <% } %>
+                  </ol>
+                </div>
+
+                <!-- Craft Action Form -->
+                <div class="mt-auto pt-3 border-top d-flex align-items-center justify-content-between">
+                  <div class="small text-muted">
+                    Output: <strong>+<%= recipe.outputItem.quantity %> <%= recipe.outputItem.unit %> <%= recipe.outputItem.name %></strong>
+                  </div>
+                  <form action="/crafting/craft/" method="POST" class="mb-0">
+                    <input type="hidden" name="recipeId" value="<%= recipe.id %>">
+                    <button type="submit" class="btn btn-sm <%= canCraft ? 'btn-success fw-semibold shadow-sm' : 'btn-outline-secondary' %>" <%= canCraft ? '' : 'disabled' %>>
+                      <%= canCraft ? '🔨 ' + (T.craft_btn || 'Craft Tool Now') : 'Insufficient Materials' %>
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include("partials/footer") %>
