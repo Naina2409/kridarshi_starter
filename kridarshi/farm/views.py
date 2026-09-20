@@ -11,7 +11,6 @@ from .i18n import (
     CONDITION_KEYS,
     CROP_KEYS,
     LANG_TO_FARMER,
-    STT_LANGUAGE,
     TREND_KEYS,
     current_lang,
     tr,
@@ -193,12 +192,11 @@ def voice_transcribe(request):
     audio = request.FILES.get("audio")
     if not audio:
         return JsonResponse({"error": "empty"}, status=400)
-    lang = current_lang()
     text, err = transcribe_speech(
         audio.read(),
         audio.name,
-        audio.content_type or "audio/webm",
-        STT_LANGUAGE.get(lang, "eng"),
+        audio.content_type or "application/octet-stream",
+        "",
     )
     if err == "missing_key":
         return JsonResponse({"error": "missing_key"}, status=503)

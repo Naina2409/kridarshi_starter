@@ -1,6 +1,0 @@
-[
-  {"crop": "Wheat", "market": "Azadpur Mandi, Delhi", "price_per_quintal": 2350, "trend": "up", "trader_contact": "+91-98XXXXXX01"},
-  {"crop": "Onion", "market": "Lasalgaon Mandi, Nashik", "price_per_quintal": 1800, "trend": "down", "trader_contact": "+91-98XXXXXX02"},
-  {"crop": "Rice", "market": "Karnal Mandi, Haryana", "price_per_quintal": 2100, "trend": "steady", "trader_contact": "+91-98XXXXXX03"},
-  {"crop": "Cotton", "market": "Rajkot Mandi, Gujarat", "price_per_quintal": 6800, "trend": "up", "trader_contact": "+91-98XXXXXX04"}
-]

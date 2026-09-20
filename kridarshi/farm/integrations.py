@@ -37,15 +37,28 @@ def get_weather(lat: float, lon: float) -> dict:
         return {"mock": True, "temp_c": 29, "condition": "Partly cloudy (fallback)", "rain_chance_pct": 20}
 
 
+import csv
+
 def get_market_prices(crop: str = None) -> list[dict]:
-    """Hour 3.5-5: static JSON seeded once, displayed as if live. Fast and demo-safe."""
-    path = DATA_DIR / "market_prices.json"
-    with open(path, encoding="utf-8") as f:
-        prices = json.load(f)
+    path = DATA_DIR / "market_prices.csv"
+    prices = []
+    with open(path, newline="", encoding="utf-8-sig") as f:  # utf-8-sig strips Excel's hidden BOM character
+        reader = csv.DictReader(f)
+        # normalize headers: lowercase + stripped, so "Crop", " crop", "CROP" all work
+        reader.fieldnames = [h.strip().lower() for h in reader.fieldnames]
+
+        for row in reader:
+            row = {k.strip().lower(): v for k, v in row.items()}
+            prices.append({
+                "crop": row.get("crop") or row.get("commodity") or "Unknown",
+                "market": row.get("market") or row.get("mandi") or "Unknown",
+                "price_per_quintal": float(row.get("price_per_quintal") or row.get("modal_price") or row.get("price") or 0),
+                "trend": row.get("trend", "—"),
+                "trader_contact": row.get("trader_contact", "N/A"),
+            })
     if crop:
         return [p for p in prices if p["crop"].lower() == crop.lower()]
     return prices
-
 
 def send_alert(phone: str, message: str) -> bool:
     """
@@ -138,8 +151,11 @@ def transcribe_speech(audio_bytes: bytes, filename: str, content_type: str, lang
             timeout=45,
         )
         resp.raise_for_status()
-        data = resp.json()
-        return (data.get("text") or "").strip(), ""
+        payload = resp.json()
+        return (payload.get("text") or "").strip(), ""
     except Exception as e:
-        print(f"[ELEVENLABS STT FAILED] {e}")
+        body = ""
+        if "resp" in locals() and getattr(resp, "text", None):
+            body = resp.text[:300]
+        print(f"[ELEVENLABS STT FAILED] {e} {body}")
         return "", "stt_failed"

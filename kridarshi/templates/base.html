@@ -34,6 +34,8 @@
   {{ T.mic_error|json_script:"mic-error-msg" }}
   {{ T.recording|json_script:"recording-msg" }}
   {{ T.record|json_script:"record-msg" }}
+  {{ T.stop|json_script:"stop-msg" }}
+  {{ T.converting|json_script:"converting-msg" }}
   <script>
     window.KRIDARSHI = {
       csrf: "{{ csrf_token }}",
@@ -47,6 +49,8 @@
       micError: JSON.parse(document.getElementById("mic-error-msg").textContent),
       recording: JSON.parse(document.getElementById("recording-msg").textContent),
       record: JSON.parse(document.getElementById("record-msg").textContent),
+      stop: JSON.parse(document.getElementById("stop-msg").textContent),
+      converting: JSON.parse(document.getElementById("converting-msg").textContent),
     };
     window.kridarshiSpeak = async function(text) {
       if (!text) return;
